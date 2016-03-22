@@ -6,6 +6,8 @@
     ".jshintrc",
     "README.md"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "element-resize-detector": "https://github.com/wnr/element-resize-detector.git#1.1.0"
+  },
   "devDependencies": {}
 }
