@@ -34,6 +34,8 @@ function VirtualList(config) {
   var height = (config && config.h + 'px') || '100%';
   var itemHeight = this.itemHeight = config.itemHeight;
 
+  this.erd = elementResizeDetectorMaker();
+
   this.items = config.items;
   this.generatorFn = config.generatorFn;
   this.totalRows = config.totalRows || (config.items && config.items.length);
@@ -42,38 +44,59 @@ function VirtualList(config) {
   this.container = VirtualList.createContainer(width, height);
   this.container.appendChild(scroller);
 
-  var screenItemsLen = Math.ceil(config.h / itemHeight);
-  // Cache 4 times the number of items that fit in the container viewport
-  this.cachedItemsLen = screenItemsLen * 3;
-  this._renderChunk(this.container, 0);
-
   var self = this;
   var lastRepaintY;
-  var maxBuffer = screenItemsLen * itemHeight;
   var lastScrolled = 0;
+
+  function heightChanged() {
+    var h = self.container.getBoundingClientRect().height
+    self._screenItemsLen = Math.ceil(h / itemHeight);
+    // Cache 4 times the number of items that fit in the container viewport
+    self.cachedItemsLen = self._screenItemsLen * 3;
+    self._renderChunk(self.container, 0);
+    self._maxBuffer = self._screenItemsLen * itemHeight;
+    updateRows();
+  }
+
+  if (config && config.h) {
+    heightChanged();
+  }
 
   // As soon as scrolling has stopped, this interval asynchronouslyremoves all
   // the nodes that are not used anymore
-  this.rmNodeInterval = setInterval(function() {
-    if (Date.now() - lastScrolled > 100) {
+  var deleteNodes = function() {
+    if (self.deleteNodesTimer) {
+      clearTimeout(self.deleteNodesTimer);
+    }
+
+    self.deleteNodesTimer = setTimeout(function() {
       var badNodes = document.querySelectorAll('[data-rm="1"]');
       for (var i = 0, l = badNodes.length; i < l; i++) {
         self.container.removeChild(badNodes[i]);
       }
-    }
-  }, 300);
+    }, 100);
+  }
 
-  function onScroll(e) {
-    var scrollTop = e.target.scrollTop; // Triggers reflow
-    if (!lastRepaintY || Math.abs(scrollTop - lastRepaintY) > maxBuffer) {
-      var first = parseInt(scrollTop / itemHeight) - screenItemsLen;
+  function updateRows() { 
+    var scrollTop = self.container.scrollTop; // Triggers reflow
+    if (!lastRepaintY || Math.abs(scrollTop - lastRepaintY) > self._maxBuffer) {
+      var first = parseInt(scrollTop / itemHeight) - self._screenItemsLen;
       self._renderChunk(self.container, first < 0 ? 0 : first);
       lastRepaintY = scrollTop;
     }
 
-    lastScrolled = Date.now();
-    e.preventDefault && e.preventDefault();
+    deleteNodes();
   }
+
+  function onScroll(e) {
+    updateRows();
+    e && e.preventDefault && e.preventDefault();
+  }
+
+
+  this.erd.listenTo(this.container, function() {
+    heightChanged();
+  });
 
   this.container.addEventListener('scroll', onScroll);
 }
@@ -122,9 +145,10 @@ VirtualList.prototype._renderChunk = function(node, from) {
   }
 
   // Hide and mark obsolete nodes for deletion.
-  for (var j = 1, l = node.childNodes.length; j < l; j++) {
-    node.childNodes[j].style.display = 'none';
-    node.childNodes[j].setAttribute('data-rm', '1');
+  var childNodes = node.querySelectorAll('.vrow');
+  for (var j = 1, l = childNodes.length; j < l; j++) {
+    childNodes[j].style.display = 'none';
+    childNodes[j].setAttribute('data-rm', '1');
   }
   node.appendChild(fragment);
 };

@@ -11,6 +11,7 @@
 </head>
 <body>
 <script type="text/javascript" src="../vlist.js"></script>
+<script type="text/javascript" src="../bower_components/element-resize-detector/dist/element-resize-detector.js"></script>
 <script>
   /*
   var bigAssList = [];
@@ -31,7 +32,6 @@
   */
 
   var list = new VirtualList({
-    h: window.innerHeight,
     itemHeight: 30,
     totalRows: 100000,
     generatorFn: function(row) {
