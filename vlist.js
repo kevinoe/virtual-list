@@ -53,7 +53,6 @@ function VirtualList(config) {
     self._screenItemsLen = Math.ceil(h / itemHeight);
     // Cache 4 times the number of items that fit in the container viewport
     self.cachedItemsLen = self._screenItemsLen * 3;
-    self._renderChunk(self.container, 0);
     self._maxBuffer = self._screenItemsLen * itemHeight;
     updateRows();
   }
