@@ -32,14 +32,20 @@
 function VirtualList(config) {
   var width = '100%';
   var height = '100%';
-  this.itemHeight = config.itemHeight || 30;
+
+  if (config.itemHeight) {
+    this.itemHeight = config.itemHeight;
+  } else {
+    this.itemHeight = 0;    
+  }
 
   this.erd = elementResizeDetectorMaker();
-
   this.items = config.items;
+  this.totalRows = this.items.length
   this.generatorFn = config.generatorFn;
 
   var scroller = VirtualList.createScroller(this.itemHeight * this.totalRows);
+
   this._screenItemsLen = 0;
   this.container = VirtualList.createContainer(width, height);
   this.container.appendChild(scroller);
@@ -47,28 +53,29 @@ function VirtualList(config) {
   var self = this;
   self._lastRepaintY = 0;
 
-  function heightChanged() {
+  this.heightChanged = function() {
     var h = self.container.getBoundingClientRect().height
     self._screenItemsLen = Math.ceil(h / self.itemHeight);
     // Cache 4 times the number of items that fit in the container viewport
     self.cachedItemsLen = self._screenItemsLen * 3;
     self._maxBuffer = self._screenItemsLen * self.itemHeight;
+
+    scroller.style.height = self.itemHeight * self.totalRows;
+
     self.update();
   }
 
   if (config && config.h) {
-    heightChanged();
+    this.heightChanged();
   }
-
 
   function onScroll(e) {
     self.update();
     e && e.preventDefault && e.preventDefault();
   }
 
-
   this.erd.listenTo(this.container, function() {
-    heightChanged();
+    self.heightChanged();
   });
 
   this.container.addEventListener('scroll', onScroll);
@@ -156,6 +163,17 @@ VirtualList.prototype.update = function(force = false) {
     })(self), 100);
   }
   self.totalRows = this.items.length
+
+  if (this.itemHeight == 0) {
+    var row = this.createRow(0)
+    self.container.appendChild(row);
+    this.itemHeight = row.getBoundingClientRect().height;
+    self.container.removeChild(row);
+    if (this.itemHeight == 0)
+      return;
+
+    this.heightChanged();
+  }
 
   var scrollTop = this.container.scrollTop; // Triggers reflow
   if (force || !self._lastRepaintY || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
