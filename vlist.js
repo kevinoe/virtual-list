@@ -24,71 +24,45 @@
 
 'use strict';
 
-/**
+/*
  * Creates a virtually-rendered scrollable list.
  * @param {object} config
  * @constructor
  */
 function VirtualList(config) {
-  var width = (config && config.w + 'px') || '100%';
-  var height = (config && config.h + 'px') || '100%';
-  var itemHeight = this.itemHeight = config.itemHeight;
+  var width = '100%';
+  var height = '100%';
+  this.itemHeight = config.itemHeight || 30;
 
   this.erd = elementResizeDetectorMaker();
 
   this.items = config.items;
   this.generatorFn = config.generatorFn;
-  this.totalRows = config.totalRows || (config.items && config.items.length);
 
-  var scroller = VirtualList.createScroller(itemHeight * this.totalRows);
+  var scroller = VirtualList.createScroller(this.itemHeight * this.totalRows);
+  this._screenItemsLen = 0;
   this.container = VirtualList.createContainer(width, height);
   this.container.appendChild(scroller);
 
   var self = this;
-  var lastRepaintY;
-  var lastScrolled = 0;
+  self._lastRepaintY = 0;
 
   function heightChanged() {
     var h = self.container.getBoundingClientRect().height
-    self._screenItemsLen = Math.ceil(h / itemHeight);
+    self._screenItemsLen = Math.ceil(h / self.itemHeight);
     // Cache 4 times the number of items that fit in the container viewport
     self.cachedItemsLen = self._screenItemsLen * 3;
-    self._maxBuffer = self._screenItemsLen * itemHeight;
-    updateRows();
+    self._maxBuffer = self._screenItemsLen * self.itemHeight;
+    self.update();
   }
 
   if (config && config.h) {
     heightChanged();
   }
 
-  // As soon as scrolling has stopped, this interval asynchronouslyremoves all
-  // the nodes that are not used anymore
-  var deleteNodes = function() {
-    if (self.deleteNodesTimer) {
-      clearTimeout(self.deleteNodesTimer);
-    }
-
-    self.deleteNodesTimer = setTimeout(function() {
-      var badNodes = document.querySelectorAll('[data-rm="1"]');
-      for (var i = 0, l = badNodes.length; i < l; i++) {
-        self.container.removeChild(badNodes[i]);
-      }
-    }, 100);
-  }
-
-  function updateRows() { 
-    var scrollTop = self.container.scrollTop; // Triggers reflow
-    if (!lastRepaintY || Math.abs(scrollTop - lastRepaintY) > self._maxBuffer) {
-      var first = parseInt(scrollTop / itemHeight) - self._screenItemsLen;
-      self._renderChunk(self.container, first < 0 ? 0 : first);
-      lastRepaintY = scrollTop;
-    }
-
-    deleteNodes();
-  }
 
   function onScroll(e) {
-    updateRows();
+    self.update();
     e && e.preventDefault && e.preventDefault();
   }
 
@@ -159,9 +133,39 @@ VirtualList.createContainer = function(w, h) {
   c.style.overflow = 'auto';
   c.style.position = 'relative';
   c.style.padding = 0;
-  c.style.border = '1px solid black';
   return c;
 };
+
+VirtualList.prototype.update = function(force = false) {
+  // As soon as scrolling has stopped, this interval asynchronouslyremoves all
+  // the nodes that are not used anymore
+  var self = this;
+  var deleteNodes = function() {
+    if (self.deleteNodesTimer) {
+      clearTimeout(self.deleteNodesTimer);
+    }
+
+    self.deleteNodesTimer = setTimeout((function(obj) {
+      var _this = obj;
+      return function() {
+        var badNodes = _this.container.querySelectorAll('[data-rm="1"]');
+        for (var i = 0, l = badNodes.length; i < l; i++) {
+          _this.container.removeChild(badNodes[i]);
+        }
+      }
+    })(self), 100);
+  }
+  self.totalRows = this.items.length
+
+  var scrollTop = this.container.scrollTop; // Triggers reflow
+  if (force || !self._lastRepaintY || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
+    var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
+    this._renderChunk(self.container, first < 0 ? 0 : first);
+    self._lastRepaintY = scrollTop;
+  }
+
+  deleteNodes();
+}
 
 VirtualList.createScroller = function(h) {
   var scroller = document.createElement('div');
