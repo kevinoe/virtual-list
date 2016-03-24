@@ -80,6 +80,37 @@ function VirtualList(config) {
 
   this.container.addEventListener('scroll', onScroll);
 }
+  
+VirtualList.prototype.ensureRowVisible = function(row) {
+  var top = row * this.itemHeight;
+  var bottom = row*(this.itemHeight+1)
+
+  if (top < this.container.scrollTop)
+    this.container.scrollTop = top
+  else if (bottom > (this.container.scrollTop + this.container.clientHeight))
+    this.container.scrollTop = top - this.container.clientHeight + this.itemHeight
+}
+
+VirtualList.prototype.getRowIndexAt = function(y) {
+  var pos = y + this.container.scrollTop;
+  var idx = Math.floor(pos / this.itemHeight);
+  if (idx < this.totalRows)
+    return idx;
+  else
+    return -1;
+}
+
+VirtualList.prototype.getRow = function(index) {
+  var rowNodes = this.container.querySelectorAll(".vrow");
+  for (var i = 0 ; i < rowNodes.length; ++i) {
+    var rowIdx = parseInt(rowNodes[i].style.top)/this.itemHeight;
+    if (rowIdx == index) {
+      return rowNodes[i];
+    }
+  }
+
+  return null;
+}
 
 VirtualList.prototype.createRow = function(i) {
   var item;
