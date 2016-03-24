@@ -43,6 +43,7 @@ function VirtualList(config) {
   this.items = config.items;
   this.totalRows = this.items.length
   this.generatorFn = config.generatorFn;
+  this.destructorFn = config.destructorFn
 
   var scroller = VirtualList.createScroller(this.itemHeight * this.totalRows);
 
@@ -60,7 +61,7 @@ function VirtualList(config) {
     self.cachedItemsLen = self._screenItemsLen * 3;
     self._maxBuffer = self._screenItemsLen * self.itemHeight;
 
-    scroller.style.height = self.itemHeight * self.totalRows;
+    scroller.style.height = self.itemHeight * self.totalRows + "px";
 
     self.update();
   }
@@ -188,14 +189,18 @@ VirtualList.prototype.update = function(force = false) {
       return function() {
         var badNodes = _this.container.querySelectorAll('[data-rm="1"]');
         for (var i = 0, l = badNodes.length; i < l; i++) {
-          _this.container.removeChild(badNodes[i]);
+          if (_this.destructorFn) {
+            _this.destructorFn(badNodes[i]);
+          }
+          if (badNodes[i].parentNode == _this.container)
+            _this.container.removeChild(badNodes[i]);
         }
       }
     })(self), 100);
   }
   self.totalRows = this.items.length
 
-  if (this.itemHeight == 0) {
+  if (this.itemHeight == 0 && this.totalRows) {
     var row = this.createRow(0)
     self.container.appendChild(row);
     this.itemHeight = row.getBoundingClientRect().height;
