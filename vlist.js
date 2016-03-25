@@ -151,17 +151,45 @@ VirtualList.prototype._renderChunk = function(node, from) {
 
   // Append all the new rows in a document fragment that we will later append to
   // the parent node
+
   var fragment = document.createDocumentFragment();
   for (var i = from; i < finalItem; i++) {
-    fragment.appendChild(this.createRow(i));
+    if ('curStartItem' in this)
+    {
+      if (i < this.curStartItem || i >= this.curStartItem + this.cachedItemsLen)
+      {
+        fragment.appendChild(this.createRow(i));
+      }
+    } else {
+      fragment.appendChild(this.createRow(i));
+    }
   }
 
-  // Hide and mark obsolete nodes for deletion.
-  var childNodes = node.querySelectorAll('.vrow');
-  for (var j = 1, l = childNodes.length; j < l; j++) {
-    childNodes[j].style.display = 'none';
-    childNodes[j].setAttribute('data-rm', '1');
+  if ('curStartItem' in this) 
+  {
+    lastStartItem = this.curStartItem
+    // Trim any rows from the start
+    for (var i = Math.max(lastStartItem, 0); i < from; ++i)
+    {
+      var child = this.getRow(i);
+      if (child) {
+        child.style.display = 'none';
+        child.setAttribute('data-rm', '1');
+      }
+    }
+
+    var oldEnd = lastStartItem + this.cachedItemsLen
+    for (var i = finalItem; i < oldEnd; ++i)
+    {
+      var child = this.getRow(i);
+      if (child) {
+        child.style.display = 'none';
+        child.setAttribute('data-rm', '1');
+      }
+    }
   }
+
+  this.curStartItem = from;
   node.appendChild(fragment);
 };
 
@@ -212,10 +240,12 @@ VirtualList.prototype.update = function(force = false) {
   }
 
   var scrollTop = this.container.scrollTop; // Triggers reflow
-  if (force || !self._lastRepaintY || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
-    var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
-    this._renderChunk(self.container, first < 0 ? 0 : first);
-    self._lastRepaintY = scrollTop;
+  if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
+    if (self.itemHeight > 0) {
+      var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
+      this._renderChunk(self.container, first < 0 ? 0 : first);
+      self._lastRepaintY = scrollTop;
+    }
   }
 
   deleteNodes();
