@@ -84,7 +84,7 @@ function VirtualList(config) {
   
 VirtualList.prototype.ensureRowVisible = function(row) {
   var top = row * this.itemHeight;
-  var bottom = row*(this.itemHeight+1)
+  var bottom = bottom + this.itemHeight
 
   if (top < this.container.scrollTop)
     this.container.scrollTop = top
