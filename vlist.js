@@ -44,7 +44,8 @@ function VirtualList(config) {
   this.totalRows = this.items.length
   this.generatorFn = config.generatorFn;
   this.destructorFn = config.destructorFn
-
+  this.postBuildFxn = config.postBuildFxn
+  
   var scroller = VirtualList.createScroller(this.itemHeight * this.totalRows);
 
   this._screenItemsLen = 0;
@@ -59,7 +60,7 @@ function VirtualList(config) {
     self._screenItemsLen = Math.ceil(h / self.itemHeight);
     // Cache 4 times the number of items that fit in the container viewport
     self.cachedItemsLen = self._screenItemsLen * 3;
-    self._maxBuffer = self._screenItemsLen * self.itemHeight;
+    self._maxBuffer = self._screenItemsLen *.66* self.itemHeight;
 
     scroller.style.height = self.itemHeight * self.totalRows + "px";
 
@@ -84,7 +85,7 @@ function VirtualList(config) {
   
 VirtualList.prototype.ensureRowVisible = function(row) {
   var top = row * this.itemHeight;
-  var bottom = bottom + this.itemHeight
+  var bottom = top + this.itemHeight
 
   if (top < this.container.scrollTop)
     this.container.scrollTop = top
@@ -245,6 +246,8 @@ VirtualList.prototype.update = function(force = false) {
       var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
       this._renderChunk(self.container, first < 0 ? 0 : first);
       self._lastRepaintY = scrollTop;
+      if (this.postBuildFxn)
+        this.postBuildFxn();
     }
   }
 
