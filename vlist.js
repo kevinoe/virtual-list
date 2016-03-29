@@ -168,7 +168,7 @@ VirtualList.prototype._renderChunk = function(node, from) {
 
   if ('curStartItem' in this) 
   {
-    lastStartItem = this.curStartItem
+    var lastStartItem = this.curStartItem
     // Trim any rows from the start
     for (var i = Math.max(lastStartItem, 0); i < from; ++i)
     {
