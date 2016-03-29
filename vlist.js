@@ -204,6 +204,16 @@ VirtualList.createContainer = function(w, h) {
   return c;
 };
 
+VirtualList.prototype.rebuild = function() {
+  var rows = this.container.querySelectorAll('.vrow');
+  for (var i = 0; i < rows.length; ++i) { 
+    rows[i].style.display = 'none';
+    rows[i].setAttribute('data-rm', 1);
+  }
+  delete this['curStartItem'];
+  this.update(true);
+}
+
 VirtualList.prototype.update = function(force = false) {
   // As soon as scrolling has stopped, this interval asynchronouslyremoves all
   // the nodes that are not used anymore
