@@ -226,7 +226,7 @@ VirtualList.prototype.update = function(force = false) {
     self.deleteNodesTimer = setTimeout((function(obj) {
       var _this = obj;
       return function() {
-        var badNodes = _this.container.querySelectorAll('[data-rm="1"]');
+        var badNodes = _this.container.querySelectorAll('.vrow [data-rm="1"]');
         for (var i = 0, l = badNodes.length; i < l; i++) {
           if (_this.destructorFn) {
             _this.destructorFn(badNodes[i]);
