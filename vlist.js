@@ -214,7 +214,10 @@ VirtualList.prototype.rebuild = function() {
   this.update(true);
 }
 
-VirtualList.prototype.update = function(force = false) {
+VirtualList.prototype.update = function(force) {
+  if (force == null) {
+    force = false;
+  }
   // As soon as scrolling has stopped, this interval asynchronouslyremoves all
   // the nodes that are not used anymore
   var self = this;
