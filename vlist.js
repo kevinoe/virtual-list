@@ -1,7 +1,7 @@
 /**
  * The MIT License (MIT)
  *
- * Copyright (C) 2013 Sergi Mansilla
+ * Copyright (C) 2013, 2016 Sergi Mansilla
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the 'Software'), to deal
@@ -250,12 +250,14 @@ VirtualList.prototype.update = function(force) {
     if (this.itemHeight == 0)
       return;
 
+    // Triggers update
     this.heightChanged();
+    return;
   }
 
   var scrollTop = this.container.scrollTop; // Triggers reflow
   if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
-    if (self.itemHeight > 0) {
+    if (self.itemHeight > 0 && this._screenItemsLen) {
       var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
       this._renderChunk(self.container, first < 0 ? 0 : first);
       self._lastRepaintY = scrollTop;
