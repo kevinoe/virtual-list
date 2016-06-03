@@ -240,11 +240,10 @@ VirtualList.prototype.update = function(force) {
       }
     })(self), 100);
   }
-  
-  if (self.totalRows != this.items.length && this.itemHeight) {
-    self.totalRows = this.items.length
-    this.heightChanged()
-  } else if (this.itemHeight == 0 && this.totalRows) {
+
+  var oldRowCount = self.totalRows;
+  self.totalRows = this.items.length;
+  if (this.itemHeight == 0 && this.totalRows) {
     var row = this.createRow(0)
     self.container.appendChild(row);
     this.itemHeight = row.getBoundingClientRect().height;
@@ -255,8 +254,10 @@ VirtualList.prototype.update = function(force) {
     // Triggers update
     this.heightChanged();
     return;
+  } else if (self.totalRows != oldRowCount && this.itemHeight) {
+    this.heightChanged()
   }
-
+  
   var scrollTop = this.container.scrollTop; // Triggers reflow
   if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
     if (self.itemHeight > 0 && this._screenItemsLen) {
