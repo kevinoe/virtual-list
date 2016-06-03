@@ -240,9 +240,11 @@ VirtualList.prototype.update = function(force) {
       }
     })(self), 100);
   }
-  self.totalRows = this.items.length
-
-  if (this.itemHeight == 0 && this.totalRows) {
+  
+  if (self.totalRows != this.items.length && this.itemHeight) {
+    self.totalRows = this.items.length
+    this.heightChanged()
+  } else if (this.itemHeight == 0 && this.totalRows) {
     var row = this.createRow(0)
     self.container.appendChild(row);
     this.itemHeight = row.getBoundingClientRect().height;
