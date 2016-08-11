@@ -93,6 +93,14 @@ VirtualList.prototype.ensureRowVisible = function(row) {
     this.container.scrollTop = top - this.container.clientHeight + this.itemHeight
 }
 
+VirtualList.prototype.setRowHeight = function(v) {
+  if (v <= 0 || v == this.itemHeight) return;
+  var topRow = this.getRowIndexAt(0);
+  this.itemHeight = v;
+  this.container.scrollTop = this.itemHeight * topRow;
+  this.heightChanged();
+}
+
 VirtualList.prototype.getRowIndexAt = function(y) {
   var pos = y + this.container.scrollTop;
   var idx = Math.floor(pos / this.itemHeight);
