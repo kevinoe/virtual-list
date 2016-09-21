@@ -38,10 +38,14 @@ function VirtualList(config) {
   } else {
     this.itemHeight = 0;    
   }
-
+  this.pinFirstRow = config.pinFirstRow
   this.erd = elementResizeDetectorMaker();
   this.items = config.items;
-  this.totalRows = this.items.length
+  if ('totalRows' in config)
+    this.totalRows = config.totalRows;
+  else if (this.items)
+    this.totalRows = this.items.length;
+
   this.generatorFn = config.generatorFn;
   this.destructorFn = config.destructorFn
   this.postBuildFxn = config.postBuildFxn
@@ -49,22 +53,32 @@ function VirtualList(config) {
   var scroller = VirtualList.createScroller(this.itemHeight * this.totalRows);
 
   this._screenItemsLen = 0;
-  this.container = VirtualList.createContainer(width, height);
-  this.container.appendChild(scroller);
-
+  this.container = document.createElement('div')
+  this.innerContainer = VirtualList.createInnerContainer(width, height);
+  this.innerContainer.appendChild(scroller);
+  this.container.appendChild(this.innerContainer)
   var self = this;
   self._lastRepaintY = 0;
 
+  if (this.pinFirstRow)
+  {
+    this.firstRow = this.createRow(0)
+    this.container.appendChild(this.firstRow)
+  }
   this.heightChanged = function() {
-    var h = self.container.getBoundingClientRect().height
+    var h = self.innerContainer.getBoundingClientRect().height
     self._screenItemsLen = Math.ceil(h / self.itemHeight);
-    // Cache 4 times the number of items that fit in the container viewport
+    // Cache 4 times the number of items that fit in the innerContainer viewport
     self.cachedItemsLen = self._screenItemsLen * 3;
     self._maxBuffer = self._screenItemsLen *.66* self.itemHeight;
 
     scroller.style.height = self.itemHeight * self.totalRows + "px";
+    if (self.firstRow) {
+      self.firstRow.style.width = this.innerContainer.clientWidth + "px"
 
+    }
     self.update();
+
   }
 
   if (config && config.h) {
@@ -76,33 +90,33 @@ function VirtualList(config) {
     e && e.preventDefault && e.preventDefault();
   }
 
-  this.erd.listenTo(this.container, function() {
+  this.erd.listenTo(this.innerContainer, function() {
     self.heightChanged();
   });
 
-  this.container.addEventListener('scroll', onScroll);
+  this.innerContainer.addEventListener('scroll', onScroll);
 }
   
 VirtualList.prototype.ensureRowVisible = function(row) {
   var top = row * this.itemHeight;
   var bottom = top + this.itemHeight
 
-  if (top < this.container.scrollTop)
-    this.container.scrollTop = top
-  else if (bottom > (this.container.scrollTop + this.container.clientHeight))
-    this.container.scrollTop = top - this.container.clientHeight + this.itemHeight
+  if (top < this.innerContainer.scrollTop)
+    this.innerContainer.scrollTop = top
+  else if (bottom > (this.innerContainer.scrollTop + this.innerContainer.clientHeight))
+    this.innerContainer.scrollTop = top - this.innerContainer.clientHeight + this.itemHeight
 }
 
 VirtualList.prototype.setRowHeight = function(v) {
   if (v <= 0 || v == this.itemHeight) return;
   var topRow = this.getRowIndexAt(0);
   this.itemHeight = v;
-  this.container.scrollTop = this.itemHeight * topRow;
+  this.innerContainer.scrollTop = this.itemHeight * topRow;
   this.heightChanged();
 }
 
 VirtualList.prototype.getRowIndexAt = function(y) {
-  var pos = y + this.container.scrollTop;
+  var pos = y + this.innerContainer.scrollTop;
   var idx = Math.floor(pos / this.itemHeight);
   if (idx < this.totalRows)
     return idx;
@@ -111,7 +125,10 @@ VirtualList.prototype.getRowIndexAt = function(y) {
 }
 
 VirtualList.prototype.getRow = function(index) {
-  var rowNodes = this.container.querySelectorAll(".vrow");
+  if (index == 0 && this.pinFirstRow)
+    return this.firstRow;
+
+  var rowNodes = this.innerContainer.querySelectorAll(".vrow");
   for (var i = 0 ; i < rowNodes.length; ++i) {
     var rowIdx = parseInt(rowNodes[i].style.top)/this.itemHeight;
     if (rowIdx == index) {
@@ -136,6 +153,9 @@ VirtualList.prototype.createRow = function(i) {
       item = this.items[i];
     }
   }
+
+  if (this.pinFirstRow && i == 0)
+    this.firstRow = item;
 
   item.classList.add('vrow');
   item.style.position = 'absolute';
@@ -163,6 +183,10 @@ VirtualList.prototype._renderChunk = function(node, from) {
 
   var fragment = document.createDocumentFragment();
   for (var i = from; i < finalItem; i++) {
+
+    if (i == 0 && this.firstRow && this.pinFirstRow)
+      continue;
+
     if ('curStartItem' in this)
     {
       if (i < this.curStartItem || i >= this.curStartItem + this.cachedItemsLen)
@@ -180,6 +204,9 @@ VirtualList.prototype._renderChunk = function(node, from) {
     // Trim any rows from the start
     for (var i = Math.max(lastStartItem, 0); i < from; ++i)
     {
+      if (i == 0 && this.pinFirstRow)
+        continue;
+
       var child = this.getRow(i);
       if (child) {
         child.style.display = 'none';
@@ -190,6 +217,8 @@ VirtualList.prototype._renderChunk = function(node, from) {
     var oldEnd = lastStartItem + this.cachedItemsLen
     for (var i = finalItem; i < oldEnd; ++i)
     {
+      if (i == 0 && this.pinFirstRow)
+        continue;
       var child = this.getRow(i);
       if (child) {
         child.style.display = 'none';
@@ -202,7 +231,7 @@ VirtualList.prototype._renderChunk = function(node, from) {
   node.appendChild(fragment);
 };
 
-VirtualList.createContainer = function(w, h) {
+VirtualList.createInnerContainer = function(w, h) {
   var c = document.createElement('div');
   c.style.width = w;
   c.style.height = h;
@@ -212,13 +241,23 @@ VirtualList.createContainer = function(w, h) {
   return c;
 };
 
+
 VirtualList.prototype.rebuild = function() {
-  var rows = this.container.querySelectorAll('.vrow');
+  var rows = this.innerContainer.querySelectorAll('.vrow');
   for (var i = 0; i < rows.length; ++i) { 
     rows[i].style.display = 'none';
     rows[i].setAttribute('data-rm', 1);
   }
   delete this['curStartItem'];
+
+  if (this.pinFirstRow)
+  {
+    this.firstRow.style.display = 'none'
+    this.firstRow.parentElement.removeChild(this.firstRow);
+    this.firstRow = null
+    this.firstRow = this.createRow(0)
+    this.container.appendChild(this.firstRow)
+  }
   this.update(true);
 }
 
@@ -226,6 +265,7 @@ VirtualList.prototype.update = function(force) {
   if (force == null) {
     force = false;
   }
+
   // As soon as scrolling has stopped, this interval asynchronouslyremoves all
   // the nodes that are not used anymore
   var self = this;
@@ -237,25 +277,28 @@ VirtualList.prototype.update = function(force) {
     self.deleteNodesTimer = setTimeout((function(obj) {
       var _this = obj;
       return function() {
-        var badNodes = _this.container.querySelectorAll('.vrow[data-rm="1"]');
+        var badNodes = _this.innerContainer.querySelectorAll('.vrow[data-rm="1"]');
         for (var i = 0, l = badNodes.length; i < l; i++) {
           if (_this.destructorFn) {
             _this.destructorFn(badNodes[i]);
           }
-          if (badNodes[i].parentNode == _this.container)
-            _this.container.removeChild(badNodes[i]);
+          if (badNodes[i].parentNode == _this.innerContainer)
+            _this.innerContainer.removeChild(badNodes[i]);
         }
       }
     })(self), 100);
   }
 
   var oldRowCount = self.totalRows;
-  self.totalRows = this.items.length;
+
+  if ('items' in this && this.items)
+    self.totalRows = this.items.length;
+
   if (this.itemHeight == 0 && this.totalRows) {
     var row = this.createRow(0)
-    self.container.appendChild(row);
+    self.innerContainer.appendChild(row);
     this.itemHeight = row.getBoundingClientRect().height;
-    self.container.removeChild(row);
+    self.innerContainer.removeChild(row);
     if (this.itemHeight == 0)
       return;
 
@@ -266,11 +309,11 @@ VirtualList.prototype.update = function(force) {
     this.heightChanged()
   }
   
-  var scrollTop = this.container.scrollTop; // Triggers reflow
+  var scrollTop = this.innerContainer.scrollTop; // Triggers reflow
   if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
     if (self.itemHeight > 0 && this._screenItemsLen) {
       var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
-      this._renderChunk(self.container, first < 0 ? 0 : first);
+      this._renderChunk(self.innerContainer, first < 0 ? 0 : first);
       self._lastRepaintY = scrollTop;
       if (this.postBuildFxn)
         this.postBuildFxn();

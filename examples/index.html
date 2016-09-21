@@ -34,6 +34,7 @@
   var list = new VirtualList({
     itemHeight: 30,
     totalRows: 100000,
+    pinFirstRow: false,
     generatorFn: function(row) {
       var el = document.createElement("div");
       el.innerHTML = "<p>ITEM " + row + "</p>";
