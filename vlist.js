@@ -54,19 +54,21 @@ function VirtualList(config) {
 
   this._screenItemsLen = 0;
   this.container = document.createElement('div')
-  this.innerContainer = VirtualList.createInnerContainer(width, height);
+  this.innerContainer = VirtualList.createInnerContainer("100%", "100%");
   this.innerContainer.appendChild(scroller);
   this.container.appendChild(this.innerContainer)
+  this.container.style.width = width
+  this.container.style.height = height
   var self = this;
   self._lastRepaintY = 0;
 
-  if (this.pinFirstRow)
+  if (this.pinFirstRow && this.totalRows > 0)
   {
     this.firstRow = this.createRow(0)
     this.container.appendChild(this.firstRow)
   }
   this.heightChanged = function() {
-    var h = self.innerContainer.getBoundingClientRect().height
+    var h = self.container.getBoundingClientRect().height
     self._screenItemsLen = Math.ceil(h / self.itemHeight);
     // Cache 4 times the number of items that fit in the innerContainer viewport
     self.cachedItemsLen = self._screenItemsLen * 3;
@@ -233,8 +235,8 @@ VirtualList.prototype._renderChunk = function(node, from) {
 
 VirtualList.createInnerContainer = function(w, h) {
   var c = document.createElement('div');
-  c.style.width = w;
-  c.style.height = h;
+  c.style.width = "100%";
+  c.style.height = "100%";
   c.style.overflow = 'auto';
   c.style.position = 'relative';
   c.style.padding = 0;
@@ -252,11 +254,16 @@ VirtualList.prototype.rebuild = function() {
 
   if (this.pinFirstRow)
   {
-    this.firstRow.style.display = 'none'
-    this.firstRow.parentElement.removeChild(this.firstRow);
-    this.firstRow = null
-    this.firstRow = this.createRow(0)
-    this.container.appendChild(this.firstRow)
+    if (this.firstRow) {
+      this.firstRow.style.display = 'none'
+      this.firstRow.parentElement.removeChild(this.firstRow);
+      this.firstRow = null
+    }
+
+    if (this.totalRows > 0) {
+      this.firstRow = this.createRow(0)
+      this.container.appendChild(this.firstRow)
+    }
   }
   this.update(true);
 }
