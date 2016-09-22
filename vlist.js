@@ -98,7 +98,11 @@ function VirtualList(config) {
 
   this.innerContainer.addEventListener('scroll', onScroll);
 }
-  
+
+VirtualList.prototype.getScrollPosition = function () {
+  return this.innerContainer.scrollTop
+}
+
 VirtualList.prototype.ensureRowVisible = function(row) {
   var top = row * this.itemHeight;
   var bottom = top + this.itemHeight
@@ -252,6 +256,9 @@ VirtualList.prototype.rebuild = function() {
   }
   delete this['curStartItem'];
 
+  if ('items' in this && this.items)
+    this.totalRows = this.items.length;
+
   if (this.pinFirstRow)
   {
     if (this.firstRow) {
@@ -265,6 +272,7 @@ VirtualList.prototype.rebuild = function() {
       this.container.appendChild(this.firstRow)
     }
   }
+
   this.update(true);
 }
 
