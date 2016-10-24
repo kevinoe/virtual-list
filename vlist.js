@@ -322,6 +322,9 @@ VirtualList.prototype.update = function(force) {
     return;
   } else if (self.totalRows != oldRowCount && this.itemHeight) {
     this.heightChanged()
+  } else if (self.totalRows && this.itemHeight && !this._screenItemsLen &&
+      self.container.getBoundingClientRect().height > 0) {
+    this.heightChanged();
   }
   
   var scrollTop = this.innerContainer.scrollTop; // Triggers reflow
