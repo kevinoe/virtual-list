@@ -30,9 +30,6 @@
  * @constructor
  */
 function VirtualList(config) {
-  var width = '100%';
-  var height = '100%';
-
   if (config.itemHeight) {
     this.itemHeight = config.itemHeight;
   } else {
@@ -57,8 +54,7 @@ function VirtualList(config) {
   this.innerContainer = VirtualList.createInnerContainer("100%", "100%");
   this.innerContainer.appendChild(scroller);
   this.container.appendChild(this.innerContainer)
-  this.container.style.width = width
-  this.container.style.height = height
+
   var self = this;
   self._lastRepaintY = 0;
 
@@ -67,6 +63,32 @@ function VirtualList(config) {
     this.firstRow = this.createRow(0)
     this.container.appendChild(this.firstRow)
   }
+
+  this.rowsPossiblyChanged = function() {
+    var oldRowCount = self.totalRows;
+
+    if ('items' in this && this.items)
+      self.totalRows = this.items.length;
+
+    if (this.itemHeight == 0 && this.totalRows) {
+      var row = this.createRow(0)
+      self.innerContainer.appendChild(row);
+      this.itemHeight = row.getBoundingClientRect().height;
+      self.innerContainer.removeChild(row);
+      if (this.itemHeight == 0)
+        return;
+
+      // Triggers update
+      this.heightChanged();
+      return;
+    } else if (self.totalRows != oldRowCount && this.itemHeight) {
+      this.heightChanged()
+    } else if (self.totalRows && this.itemHeight && !this._screenItemsLen &&
+        self.container.getBoundingClientRect().height > 0) {
+      this.heightChanged();
+    }
+  }
+
   this.heightChanged = function() {
     var h = self.container.getBoundingClientRect().height
     self._screenItemsLen = Math.ceil(h / self.itemHeight);
@@ -256,8 +278,7 @@ VirtualList.prototype.rebuild = function() {
   }
   delete this['curStartItem'];
 
-  if ('items' in this && this.items)
-    this.totalRows = this.items.length;
+  this.rowsPossiblyChanged();
 
   if (this.pinFirstRow)
   {
@@ -304,28 +325,7 @@ VirtualList.prototype.update = function(force) {
     })(self), 100);
   }
 
-  var oldRowCount = self.totalRows;
-
-  if ('items' in this && this.items)
-    self.totalRows = this.items.length;
-
-  if (this.itemHeight == 0 && this.totalRows) {
-    var row = this.createRow(0)
-    self.innerContainer.appendChild(row);
-    this.itemHeight = row.getBoundingClientRect().height;
-    self.innerContainer.removeChild(row);
-    if (this.itemHeight == 0)
-      return;
-
-    // Triggers update
-    this.heightChanged();
-    return;
-  } else if (self.totalRows != oldRowCount && this.itemHeight) {
-    this.heightChanged()
-  } else if (self.totalRows && this.itemHeight && !this._screenItemsLen &&
-      self.container.getBoundingClientRect().height > 0) {
-    this.heightChanged();
-  }
+  this.rowsPossiblyChanged();
   
   var scrollTop = this.innerContainer.scrollTop; // Triggers reflow
   if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
