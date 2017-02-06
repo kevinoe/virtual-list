@@ -217,7 +217,7 @@ VirtualList.prototype._renderChunk = function(node, from) {
 
     if ('curStartItem' in this)
     {
-      if (i < this.curStartItem || i >= this.curStartItem + this.cachedItemsLen)
+      if (i < this.curStartItem || i >= this.curFinalItem)
       {
         fragment.appendChild(this.createRow(i));
       }
@@ -242,7 +242,7 @@ VirtualList.prototype._renderChunk = function(node, from) {
       }
     }
 
-    var oldEnd = lastStartItem + this.cachedItemsLen
+    var oldEnd = this.curFinalItem
     for (var i = finalItem; i < oldEnd; ++i)
     {
       if (i == 0 && this.pinFirstRow)
@@ -256,6 +256,7 @@ VirtualList.prototype._renderChunk = function(node, from) {
   }
 
   this.curStartItem = from;
+  this.curFinalItem = finalItem;
   node.appendChild(fragment);
 };
 
@@ -328,7 +329,7 @@ VirtualList.prototype.update = function(force) {
   this.rowsPossiblyChanged();
   
   var scrollTop = this.innerContainer.scrollTop; // Triggers reflow
-  if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer) {
+  if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer || (this.curFinalItem < this.curStartItem + this.cachedItemsLen)) {
     if (self.itemHeight > 0 && this._screenItemsLen) {
       var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
       this._renderChunk(self.innerContainer, first < 0 ? 0 : first);
