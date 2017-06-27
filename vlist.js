@@ -36,7 +36,6 @@ function VirtualList(config) {
     this.itemHeight = 0;    
   }
   this.pinFirstRow = config.pinFirstRow
-  this.erd = elementResizeDetectorMaker();
   this.items = config.items;
   if ('totalRows' in config)
     this.totalRows = config.totalRows;
@@ -113,10 +112,6 @@ function VirtualList(config) {
     self.update();
     e && e.preventDefault && e.preventDefault();
   }
-
-  this.erd.listenTo(this.innerContainer, function() {
-    self.heightChanged();
-  });
 
   this.innerContainer.addEventListener('scroll', onScroll);
 }
