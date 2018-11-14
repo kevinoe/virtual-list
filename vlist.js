@@ -269,7 +269,6 @@ VirtualList.createInnerContainer = function(w, h) {
 VirtualList.prototype.rebuild = function() {
   var rows = this.innerContainer.querySelectorAll('.vrow');
   for (var i = 0; i < rows.length; ++i) { 
-    rows[i].style.display = 'none';
     rows[i].setAttribute('data-rm', 1);
   }
   delete this['curStartItem'];
@@ -291,6 +290,9 @@ VirtualList.prototype.rebuild = function() {
   }
 
   this.update(true);
+  for (var i = 0; i < rows.length; ++i) {
+    rows[i].style.display = 'none';
+  }
 }
 
 VirtualList.prototype.update = function(force) {
