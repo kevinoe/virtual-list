@@ -151,7 +151,7 @@ VirtualList.prototype.getRow = function(index) {
   if (index == 0 && this.pinFirstRow)
     return this.firstRow;
 
-  var rowNodes = this.innerContainer.querySelectorAll(".vrow");
+  var rowNodes = this.innerContainer.querySelectorAll(".vrow:not([data-rm])");
   for (var i = 0 ; i < rowNodes.length; ++i) {
     var rowIdx = parseInt(rowNodes[i].style.top)/this.itemHeight;
     if (rowIdx == index) {
