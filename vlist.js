@@ -42,6 +42,7 @@ function VirtualList(config) {
   else if (this.items)
     this.totalRows = this.items.length;
 
+  this.preBuildFxn = config.preBuildFxn;
   this.generatorFn = config.generatorFn;
   this.destructorFn = config.destructorFn
   this.postBuildFxn = config.postBuildFxn
@@ -328,6 +329,8 @@ VirtualList.prototype.update = function(force) {
   var scrollTop = this.innerContainer.scrollTop; // Triggers reflow
   if (force || !('curStartItem' in this) || Math.abs(scrollTop - self._lastRepaintY) > this._maxBuffer || (this.curFinalItem < this.curStartItem + this.cachedItemsLen)) {
     if (self.itemHeight > 0 && this._screenItemsLen) {
+      if (this.preBuildFxn)
+        this.preBuildFxn();
       var first = parseInt(scrollTop / self.itemHeight) - this._screenItemsLen;
       this._renderChunk(self.innerContainer, first < 0 ? 0 : first);
       self._lastRepaintY = scrollTop;
